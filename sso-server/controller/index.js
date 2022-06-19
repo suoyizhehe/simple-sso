@@ -42,13 +42,17 @@ const appTokenFromRequest = fromAuthHeaderAsBearerToken();
 // app token to validate the request is coming from the authenticated server only.
 const appTokenDB = {
   sso_consumer: "l1Q7zkOL59cRqWBkQ12ZiGVW2DBL",
+  sso_consumer1: "1g0jJwGmRQhJwvwNOrY4i90kD0m",
   simple_sso_consumer: "1g0jJwGmRQhJwvwNOrY4i90kD0m"
 };
 
 const alloweOrigin = {
+  "http://wh.mshome.net:3333":true,
+  "https://daxumi.cn": true,
   "http://consumer.ankuranand.in:3020": true,
   "http://consumertwo.ankuranand.in:3030": true,
-  "http://sso.ankuranand.in:3080": false
+  "http://sso.ankuranand.in:3080": false,
+  //"https://daxumi.cn": "sso_consumer"
 };
 
 const deHyphenatedUUID = () => uuidv4().replace(/-/gi, "");
@@ -60,16 +64,34 @@ const sessionUser = {};
 const sessionApp = {};
 
 const originAppName = {
+  "http://wh.mshome.net:3333": "sso_consumer1",
+  "https://daxumi.cn": "sso_consumer",
   "http://consumer.ankuranand.in:3020": "sso_consumer",
   "http://consumertwo.ankuranand.in:3030": "simple_sso_consumer"
 };
 
 const userDB = {
   "info@ankuranand.com": {
-    password: "test",
+    password: "test1234123121",
     userId: encodedId(), // incase you dont want to share the user-email.
     appPolicy: {
-      sso_consumer: { role: "admin", shareEmail: true },
+      sso_consumer: { role: "admin", shareEmail: false },
+      simple_sso_consumer: { role: "user", shareEmail: false }
+    }
+  },
+  "abibazhi@126.com": {
+    password: "test1",
+    userId: encodedId(), // incase you dont want to share the user-email.
+    appPolicy: {
+      sso_consumer: { role: "admin", shareEmail: false },
+      simple_sso_consumer: { role: "user", shareEmail: false }
+    }
+  },
+  "jm@jl.sj": {
+    password: "test1",
+    userId: encodedId(), // incase you dont want to share the user-email.
+    appPolicy: {
+      sso_consumer: { role: "admin", shareEmail: false },
       simple_sso_consumer: { role: "user", shareEmail: false }
     }
   }
@@ -105,7 +127,7 @@ const generatePayload = ssoToken => {
     ...{ ...appPolicy },
     ...{
       email,
-      shareEmail: undefined,
+      shareEmail: 'undefined',
       uid: user.userId,
       // global SessionID for the logout functionality.
       globalSessionID: globalSessionToken
@@ -120,6 +142,9 @@ const verifySsoToken = async (req, res, next) => {
   // if the application token is not present or ssoToken request is invalid
   // if the ssoToken is not present in the cache some is
   // smart.
+  console.log('appToken = ' + appToken)
+  console.log('ssoToken = ' + ssoToken)
+  console.log('intrmTokenCache[ssoToken] = ' + intrmTokenCache[ssoToken])
   if (
     appToken == null ||
     ssoToken == null ||
@@ -178,6 +203,9 @@ const login = (req, res, next) => {
   // direct access will give the error inside new URL.
   if (serviceURL != null) {
     const url = new URL(serviceURL);
+      console.log(url)
+      console.log(url.origin)
+      console.log(alloweOrigin[url.origin])
     if (alloweOrigin[url.origin] !== true) {
       return res
         .status(400)
@@ -192,6 +220,8 @@ const login = (req, res, next) => {
     const url = new URL(serviceURL);
     const intrmid = encodedId();
     storeApplicationInCache(url.origin, req.session.user, intrmid);
+    console.log('if global session already has the user directly redirect with the token')
+    console.log(`${serviceURL}?ssoToken=${intrmid}`)
     return res.redirect(`${serviceURL}?ssoToken=${intrmid}`);
   }
 
